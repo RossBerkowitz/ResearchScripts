@@ -1,5 +1,3 @@
-# read("E:\\Documents\\Maple\\Slicing.txt");
-
 #This document will include some tools to help us see how efficiently one can slice
 #the hypercube
 
