@@ -6,8 +6,6 @@
 #We are interested in studying how this game evolves depending on changing initial conditions (i.e. bribing an extra voter to be red vs blue)
 #Based on the evidence we conjecture 1) as n goes to infinity the game takes 3 or 4 steps  2)  Whichever side is winning after step 1 wins the game with probability 1-o(1)
 
-#read("E:\\Documents\\Maple\\Voter Bribe.txt");
-
 with(ArrayTools):
 with(LinearAlgebra):
 
