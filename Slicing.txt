@@ -3,7 +3,7 @@
 #This document will include some tools to help us see how efficiently one can slice
 #the hypercube
 
-#HammingCube will initialize a graph of the Hamming Cube.
+#HammingCube will initialize a graph of the Hamming Cube.  The graph is stored as a set of vertices and edges.
 with(GraphTheory):
 HammingCube:=proc(n) local G1,V1,E1,l,v,e,i,V,E:
 	option remember:
