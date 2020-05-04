@@ -1,0 +1,154 @@
+# read("E:\\Documents\\Maple\\Slicing.txt");
+
+#This document will include some tools to help us see how efficiently one can slice
+#the hypercube
+
+#HammingCube will initialize a graph of the Hamming Cube.
+with(GraphTheory):
+HammingCube:=proc(n) local G1,V1,E1,l,v,e,i,V,E:
+	option remember:
+	if n=0
+		then RETURN([""],{}):
+	fi:
+	G1:=HammingCube(n-1):
+	V1:=G1[1]:
+	E1:=G1[2]:
+	V:=[seq(cat(0,l), l in V1), seq(cat(1,l), l in V1)]:
+	E:={seq(seq({cat(i,op(e[1])),cat(i,op(e[2]))},i=0..1), e in E1)}:
+
+	E:=E union {seq({cat(0,op(v)),cat(1,op(v))}, v in V1)}:
+	(V,E):
+end:
+
+#HamCub(n) will initialize a graph of the Hamming Cube.  The graph is stored as an nxn adjacency matrix
+with(GraphTheory):
+HamCub:=proc(n) local G1,V1,E1,l,v,e,i,V,E:
+	option remember:
+	if n=0
+		then RETURN([[]],{}):
+	fi:
+	G1:=HamCub(n-1):
+	V1:=G1[1]:
+	E1:=G1[2]:
+	V:=[seq([0,op(l)], l in V1), seq([1,op(l)], l in V1)]:
+	E:={seq(seq({[i,op(e[1])],[i,op(e[2])]},i=0..1), e in E1)}:
+
+	E:=E union {seq({[0,op(v)],[1,op(v)]}, v in V1)}:
+	(V,E):
+end:
+
+#EvalFunctional(a,b) takes in an affine map on R^n as a vector a in R^(n+1) and applies it to a vector b in R^n
+
+
+EvalFunctional:=proc(a,b) local i:
+	add(a[i]*b[i],i=1..nops(b))+a[-1]:
+end:
+
+#DotP takes the dot product of a and b.
+DotP:=proc(a,b) local i:
+	add(a[i]*b[i],i=1..nops(a)):
+end:
+
+#Test will input a linear functional given by a vector a and check if v slices
+#an edge e (which is given as a pair of vertices in R^n).
+Test:=proc(a,e) local d1,d2:
+	evalb(mul(EvalFunctional(a,v),v in e)<0):
+end:
+
+
+
+#TestSlice will input a dimension n and a set of linear functions (A) and test whether or
+#not they slice the n dimensional hamming cube.
+
+TestSlice:=proc(A,n) local e,E,TT,a:
+	E:=HamCub(n)[2]:
+	for e in E do
+		TT:=[seq(Test(a,e),a in A)]:
+		if not ComputeOr(TT) then
+			print("Not Sliced!  The edge"):
+			print(e):
+			print("is not sliced."):
+			RETURN(false):
+		fi:
+	od:
+	true:
+end:
+
+
+ComputeOr:=proc(L) local i:
+	for i from 1 to nops(L) do
+		if L[i] then
+			RETURN(true):
+		fi:
+	od:
+	false:
+end:
+
+#PMHamCub returns the hamming cube in list form with +/- entries
+PMHamCub:=proc(n) local G1,V1,E1,l,v,e,i,V,E:
+	option remember:
+	if n=0
+		then RETURN([[]],{}):
+	fi:
+	G1:=PMHamCub(n-1):
+	V1:=G1[1]:
+	E1:=G1[2]:
+	V:=[seq([-1,op(l)], l in V1), seq([1,op(l)], l in V1)]:
+	E:={seq(seq({[i,op(e[1])],[i,op(e[2])]},i in {-1,1}), e in E1)}:
+
+	E:=E union {seq({[-1,op(v)],[1,op(v)]}, v in V1)}:
+	(V,E):
+end:
+
+#2DimTestSet does the two dimensional row/column test sets
+
+SquareTestSet:=proc(n) local A,N,a,j,i:
+	N:=n^2:
+	A:={}:
+	for i from 0 to n-1 do
+		a:=[-1$ N]:
+		for j from i*n+1 to i*n+n do
+			a[j]:=a[j]+n:
+		od:
+		A:=A union {a}:
+	od:
+	for i from 1 to n do
+		a:=[-1$N]:
+		for j from i to N by n do
+			a[j]:=a[j]+n:
+		od:
+		A:=A union {a}:
+	od:
+	A:
+end:
+
+Bounds:=proc(A,n) local upper, lower,v,V,a,i,val:
+	V:=HamCub(n)[1]:
+	upper:=-infinity:
+	lower:=infinity:
+	for i from 1 to nops(V) do
+		val:=min(seq(abs(DotP(a,V[i])),a in A)):
+		if val<upper then
+			Champ:=V[i]:
+		fi:
+		upper:=max(upper,val):
+	od:
+	upper,Champ:
+	
+end:
+
+MultiDimTestSet:=proc(n) local N,A,i,a,j:
+	N:=2^n:
+	A:={}:
+	for j from 0 to n-1 do
+		a:=[seq(-1+2*nthbit(i,j),i=0..N-1)]:
+		A:=A union {a}:
+	od:
+	A:
+end:
+
+
+nthbit:=proc(k,n) local N:
+	floor(k/2^(n)) mod 2:
+end:
+

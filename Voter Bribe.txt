@@ -1,0 +1,141 @@
+#Simulating Voter Bribe Game in Maple
+#This program simulates the following game/random process:
+#Initially there are 2n voters: n red and n blue.
+#Then a random friendship graph is imposed on the voters according to some distribution (typically G(n,p))
+#At each step, every voter takes a majority vote among their friends, and then changes their color to match that of the vote.  voting takes place simultaneously for all voters
+#We are interested in studying how this game evolves depending on changing initial conditions (i.e. bribing an extra voter to be red vs blue)
+#Based on the evidence we conjecture 1) as n goes to infinity the game takes 3 or 4 steps  2)  Whichever side is winning after step 1 wins the game with probability 1-o(1)
+
+#read("E:\\Documents\\Maple\\Voter Bribe.txt");
+
+with(ArrayTools):
+with(LinearAlgebra):
+
+#rand_g(n) outputs a uniformly random graph on n vertices
+#as an array (adjacency matrix)
+rand_g:=proc(n) local i,j,ra,M:
+	ra:=rand(0..1):
+	M:=Array([[0$n]$n]):
+	for i from 1 to n do
+		for j from i+1 to n do
+			M[i,j]:=ra():
+			M[j,i]:=M[i,j]:
+		od:
+	od:
+	M:
+end:
+
+
+
+
+#singlestep(G,c) takes the graph (given by an adjacency matrix) and current coloring (given by +/-1 vector c) and outputs the coloring in the next step after each voter updates their preferences
+
+singlestep:=proc(G,c) local n,d,i:
+	n:=Size(c,1):
+	d:=MatrixVectorMultiply(G,c):
+	for i from 1 to n do
+		d[i]:=sign(d[i]+c[i]/2):
+	od:
+	d:
+end:
+
+#Game(n,k) runs a single instance of the voter bribing game with n red and n blue vertices.  An additional bribe input is allowed
+#to specify that 1 starts with k extra voters.  The game then runs until either the graph is monochromatic or 100 rounds have been run.
+#It returns the winning color, and how long the game lasted.
+
+Game:=proc(n,k:=0) local counter, N,G,c,red:
+	counter:=0:
+	N:=2*n+k;
+	G:=rand_g(N):
+	c:=Vector([1$n+k,-1$n]):
+	while(abs(add(c[i],i=1..N))<>N) do
+		c:=singlestep(G,c):
+		counter:=counter+1:
+		if counter>= 100 then
+			RETURN([0,infinity]):
+		fi:
+	od:
+	RETURN([c[1],counter]):
+	
+end:
+
+#GameLC runs game, but in particular  checks every step for a lead change.  We conjecture leadchanges don't happen for large games.
+
+GameLC:=proc(n,k:=0) local counter, N,G,c,red,oldred,leadchanges, changelog, thing:
+	counter:=0:
+	N:=2*n+k;
+	G:=rand_g(N):
+	c:=Vector([1$n+k,-1$n]):
+	red:=k:
+	oldred:=k:
+	leadchanges:=0:
+	changelog:=[]:
+	while(abs(red)<>N) do
+		c:=singlestep(G,c):
+		counter:=counter+1:
+		if counter>= 100 then
+			RETURN([0,infinity]):
+		fi:
+		oldred:=red:
+		red:=add(c[i],i=1..N):
+		if oldred>0 then
+			if red<oldred then
+				leadchanges:=leadchanges+1:
+				changelog:=[seq(thing, thing in changelog), oldred]:
+			fi:
+		elif oldred<red then
+				leadchanges:=leadchanges+1:
+				changelog:=[seq(thing, thing in changelog), oldred]:
+		fi:
+		
+	od:
+	RETURN([c[1],counter,leadchanges,changelog]):
+	
+end:
+
+#ManyGamesLC(n,runtime,k) is a wrapper that runs runtime instances of the game, and keeps track of how many lead changes occured, and when they happened.
+ManyGamesLC:=proc(n,runtime,k:=0)local LeadReversals, i,result, thing, Changespots:
+	LeadReversals:=0:
+	Changespots:=[]:
+	
+	for i from 1 to runtime do:
+		result:=GameLC(n,k):
+		if result[3]>1 then
+			LeadReversals:=LeadReversals+1:
+			Changespots:=[seq(thing, thing in Changespots), seq(thing, thing in result[4])]:
+		fi:
+	od:
+	RETURN([LeadReversals, Changespots]):
+end:
+
+
+#ManyGamesLC(n,runtime,k) is a wrapper that runs runtime instances of the game, and keeps track of how long it took a team with k bribed voters to win lose or tie.  Various statistics are then printed.
+
+
+ManyGames:=proc(n,runtime,k:=0) local RedWins, WinLength, LossLength, Ties, i,result, champ:
+	RedWins:=0:
+	WinLength:=0:
+	LossLength:=0:
+	Ties:=0:
+	champ:=0:
+	for i from 1 to runtime do:
+		result:=Game(n,k):
+		
+		if result[1]=1 then
+			RedWins:=RedWins+1:
+			WinLength:=WinLength+result[2]:
+			champ:=max(champ,result[2]):
+		elif result[1]=0 then
+			Ties:=Ties+1:
+		else LossLength:=LossLength+result[2]:
+		fi:
+	od:
+	print("Red Won", RedWins):
+	print("Average Win Time", evalf(WinLength/RedWins)):
+	print("Blue Won", runtime-RedWins-Ties):
+	print("Average Loss Time", evalf(LossLength/(runtime-RedWins-Ties))):
+	print("Number of Ties",Ties):
+	print("Win Percentage",evalf(RedWins/runtime)):
+	print("Longest Win", champ):
+	RETURN(RedWins):
+end:
